@@ -1,0 +1,130 @@
+## ──────────────────────────────────────────────
+## Global
+## ──────────────────────────────────────────────
+nameOverride: ""
+fullnameOverride: ""
+
+# Leave empty to use the release namespace.
+namespaceOverride: ""
+
+## ──────────────────────────────────────────────
+## Redis StatefulSet
+## ──────────────────────────────────────────────
+redis:
+  image:
+    repository: redis
+    tag: "7.4-alpine"
+    pullPolicy: IfNotPresent
+
+  # Number of pods: 1 master (ordinal 0) + N-1 replicas
+  replicaCount: 3
+
+  # Redis maxmemory is derived automatically as a fraction of the container
+  # memory limit to leave headroom for the Redis process itself.
+  # e.g. 0.85 = 85% of limits.memory
+  memoryFraction: 0.85
+
+  auth:
+    enabled: false
+    password: ""
+    # Provide a pre-existing Secret instead of letting the chart create one.
+    existingSecret: ""
+    existingSecretKey: "password"
+
+  persistence:
+    enabled: false
+    storageClass: ""        # leave empty to use cluster default
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+  # Extra lines appended to redis.conf on both master and replicas.
+  extraConfig: ""
+
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 1
+
+  # Spread pods across nodes — set enabled: false to disable.
+  topologySpread:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+
+  service:
+    port: 6379
+    annotations: {}
+
+## ──────────────────────────────────────────────
+## HAProxy Deployment
+## ──────────────────────────────────────────────
+haproxy:
+  image:
+    repository: haproxy
+    tag: "2.9-alpine"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+  maxconn: 4096
+
+  timeouts:
+    connect: 3s
+    client: 30s
+    server: 30s
+
+  healthCheck:
+    interval: 2s
+    rise: 2
+    fall: 3
+
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+
+  service:
+    type: ClusterIP
+    port: 6379
+    annotations: {}
+
+  # Expose a read-replica frontend on a second port (disabled by default)
+  replicaFrontend:
+    enabled: false
+    port: 6380
+
+## ──────────────────────────────────────────────
+## Pod-level settings (applied to both workloads)
+## ──────────────────────────────────────────────
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

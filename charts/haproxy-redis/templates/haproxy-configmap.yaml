@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-haproxy-config
+  namespace: {{ include "haproxy-redis.namespace" . }}
+  labels:
+    {{- include "haproxy-redis.labels" . | nindent 4 }}
+data:
+  haproxy.cfg: |
+    global
+      maxconn {{ .Values.haproxy.maxconn }}
+      log stdout format raw local0 info
+
+    defaults
+      mode tcp
+      log global
+      timeout connect {{ .Values.haproxy.timeouts.connect }}
+      timeout client  {{ .Values.haproxy.timeouts.client }}
+      timeout server  {{ .Values.haproxy.timeouts.server }}
+      option tcplog
+      option tcp-check
+
+    # Health check: authenticate first if auth is enabled, then PING
+    {{- if .Values.redis.auth.enabled }}
+    tcp-check send AUTH\ __REDIS_PASSWORD__\r\n
+    tcp-check expect string +OK
+    {{- end }}
+    tcp-check send PING\r\n
+    tcp-check expect string +PONG
+
+    frontend haproxy-redis-frontend
+      bind *:{{ .Values.haproxy.service.port }}
+      default_backend haproxy-redis-master
+
+    backend haproxy-redis-master
+      balance first
+      option tcp-check
+      server redis-0 {{ include "haproxy-redis.masterDNS" . }}:{{ .Values.redis.service.port }} check inter {{ .Values.haproxy.healthCheck.interval }} rise {{ .Values.haproxy.healthCheck.rise }} fall {{ .Values.haproxy.healthCheck.fall }}
+
+    {{- if .Values.haproxy.replicaFrontend.enabled }}
+    frontend haproxy-redis-replicas-frontend
+      bind *:{{ .Values.haproxy.replicaFrontend.port }}
+      default_backend haproxy-redis-replicas
+
+    backend haproxy-redis-replicas
+      balance roundrobin
+      option tcp-check
+      {{- range $i, $e := until (int .Values.redis.replicaCount) }}
+      {{- if gt $i 0 }}
+      server replica-{{ $i }} {{ $.Release.Name }}-redis-{{ $i }}.{{ $.Release.Name }}-redis-headless.{{ include "haproxy-redis.namespace" $ }}.svc.cluster.local:{{ $.Values.redis.service.port }} check inter {{ $.Values.haproxy.healthCheck.interval }} rise {{ $.Values.haproxy.healthCheck.rise }} fall {{ $.Values.haproxy.healthCheck.fall }}
+      {{- end }}
+      {{- end }}
+    {{- end }}

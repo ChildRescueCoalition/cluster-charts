@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-haproxy
+  namespace: {{ include "haproxy-redis.namespace" . }}
+  labels:
+    {{- include "haproxy-redis.labels" . | nindent 4 }}
+    {{- include "haproxy-redis.haproxy.selectorLabels" . | nindent 4 }}
+  {{- with .Values.haproxy.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.haproxy.service.type }}
+  selector:
+    {{- include "haproxy-redis.haproxy.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: redis
+      port: {{ .Values.haproxy.service.port }}
+      targetPort: {{ .Values.haproxy.service.port }}
+    {{- if .Values.haproxy.replicaFrontend.enabled }}
+    - name: redis-replicas
+      port: {{ .Values.haproxy.replicaFrontend.port }}
+      targetPort: {{ .Values.haproxy.replicaFrontend.port }}
+    {{- end }}

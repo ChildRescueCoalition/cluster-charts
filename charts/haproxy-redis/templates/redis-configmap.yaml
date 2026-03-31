@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-redis-config
+  namespace: {{ include "haproxy-redis.namespace" . }}
+  labels:
+    {{- include "haproxy-redis.labels" . | nindent 4 }}
+data:
+  master.conf: |
+    maxmemory {{ include "haproxy-redis.maxmemory" . }}
+    maxmemory-policy allkeys-lru
+    loglevel warning
+    {{- if .Values.redis.persistence.enabled }}
+    save 3600 1
+    save 300 100
+    save 60 10000
+    appendonly yes
+    appendfilename "appendonly.aof"
+    dir {{ .Values.redis.persistence.mountPath }}
+    {{- else }}
+    save ""
+    appendonly no
+    {{- end }}
+    {{- if .Values.redis.auth.enabled }}
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    {{- end }}
+    {{- if .Values.redis.extraConfig }}
+    {{ .Values.redis.extraConfig | nindent 4 }}
+    {{- end }}
+
+  replica.conf: |
+    maxmemory {{ include "haproxy-redis.maxmemory" . }}
+    maxmemory-policy allkeys-lru
+    loglevel warning
+    {{- if .Values.redis.persistence.enabled }}
+    save 3600 1
+    save 300 100
+    save 60 10000
+    appendonly yes
+    appendfilename "appendonly.aof"
+    dir {{ .Values.redis.persistence.mountPath }}
+    {{- else }}
+    save ""
+    appendonly no
+    {{- end }}
+    replicaof {{ include "haproxy-redis.masterDNS" . }} {{ .Values.redis.service.port }}
+    {{- if .Values.redis.auth.enabled }}
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    {{- end }}
+    {{- if .Values.redis.extraConfig }}
+    {{ .Values.redis.extraConfig | nindent 4 }}
+    {{- end }}

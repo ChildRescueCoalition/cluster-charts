@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-redis
+  namespace: {{ include "haproxy-redis.namespace" . }}
+  labels:
+    {{- include "haproxy-redis.labels" . | nindent 4 }}
+    {{- include "haproxy-redis.redis.selectorLabels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Release.Name }}-redis-headless
+  replicas: {{ .Values.redis.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "haproxy-redis.redis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "haproxy-redis.redis.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: init-role
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              ORDINAL=$(hostname | rev | cut -d- -f1 | rev)
+              if [ "$ORDINAL" = "0" ]; then
+                SRC=/config/master.conf
+              else
+                SRC=/config/replica.conf
+              fi
+              {{- if .Values.redis.auth.enabled }}
+              sed "s|\${REDIS_PASSWORD}|${REDIS_PASSWORD}|g" "$SRC" > /etc/redis/redis.conf
+              {{- else }}
+              cp "$SRC" /etc/redis/redis.conf
+              {{- end }}
+          {{- if .Values.redis.auth.enabled }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "haproxy-redis.authSecretName" . }}
+                  key: {{ .Values.redis.auth.existingSecretKey }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: redis-conf
+              mountPath: /etc/redis
+      containers:
+        - name: redis
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command: ["redis-server", "/etc/redis/redis.conf"]
+          ports:
+            - containerPort: {{ .Values.redis.service.port }}
+              name: redis
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: {{ .Values.redis.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.redis.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.redis.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: {{ .Values.redis.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.redis.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.redis.readinessProbe.timeoutSeconds }}
+          volumeMounts:
+            - name: redis-conf
+              mountPath: /etc/redis
+            {{- if .Values.redis.persistence.enabled }}
+            - name: redis-data
+              mountPath: {{ .Values.redis.persistence.mountPath }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-redis-config
+        - name: redis-conf
+          emptyDir: {}
+      {{- if .Values.redis.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.redis.topologySpread.maxSkew }}
+          topologyKey: {{ .Values.redis.topologySpread.topologyKey }}
+          whenUnsatisfiable: {{ .Values.redis.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "haproxy-redis.redis.selectorLabels" . | nindent 14 }}
+      {{- end }}
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: [ "{{ .Values.redis.persistence.accessMode }}" ]
+        {{- if .Values.redis.persistence.storageClass }}
+        storageClassName: {{ .Values.redis.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size }}
+  {{- end }}

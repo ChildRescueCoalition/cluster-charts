@@ -1,0 +1,39 @@
+╔══════════════════════════════════════════════════════════════╗
+║                haproxy-redis deployed successfully           ║
+╚══════════════════════════════════════════════════════════════╝
+
+Release  : {{ .Release.Name }}
+Namespace: {{ include "haproxy-redis.namespace" . }}
+
+Redis StatefulSet
+  Pods     : {{ .Values.redis.replicaCount }} (1 master + {{ sub .Values.redis.replicaCount 1 }} replica(s))
+  Master   : {{ include "haproxy-redis.masterDNS" . }}
+  maxmemory: {{ include "haproxy-redis.maxmemory" . }} ({{ .Values.redis.memoryFraction | mulf 100 | int }}% of {{ .Values.redis.resources.limits.memory }} limit)
+  Auth     : {{ if .Values.redis.auth.enabled }}enabled{{ else }}disabled{{ end }}
+  Persistence: {{ if .Values.redis.persistence.enabled }}enabled ({{ .Values.redis.persistence.size }}){{ else }}disabled{{ end }}
+
+HAProxy
+  Pods     : {{ .Values.haproxy.replicaCount }}
+
+Connect your application to:
+  {{ .Release.Name }}-haproxy.{{ include "haproxy-redis.namespace" . }}.svc.cluster.local:{{ .Values.haproxy.service.port }}
+
+{{- if .Values.redis.auth.enabled }}
+
+Auth is enabled. Use the password from secret: {{ include "haproxy-redis.authSecretName" . }}
+
+  redis://:$(kubectl get secret -n {{ include "haproxy-redis.namespace" . }} {{ include "haproxy-redis.authSecretName" . }} -o jsonpath='{.data.password}' | base64 -d)@{{ .Release.Name }}-haproxy.{{ include "haproxy-redis.namespace" . }}.svc.cluster.local:{{ .Values.haproxy.service.port }}
+{{- end }}
+
+{{- if .Values.haproxy.replicaFrontend.enabled }}
+
+Read-replica frontend is ENABLED:
+  {{ .Release.Name }}-haproxy.{{ include "haproxy-redis.namespace" . }}.svc.cluster.local:{{ .Values.haproxy.replicaFrontend.port }}
+{{- end }}
+
+Useful commands:
+  # Verify master
+  kubectl exec -n {{ include "haproxy-redis.namespace" . }} {{ .Release.Name }}-redis-0 -- redis-cli ping
+
+  # Check replication
+  kubectl exec -n {{ include "haproxy-redis.namespace" . }} {{ .Release.Name }}-redis-0 -- redis-cli info replication

@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-haproxy
+  namespace: {{ include "haproxy-redis.namespace" . }}
+  labels:
+    {{- include "haproxy-redis.labels" . | nindent 4 }}
+    {{- include "haproxy-redis.haproxy.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.haproxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "haproxy-redis.haproxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "haproxy-redis.haproxy.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.redis.auth.enabled }}
+      initContainers:
+        - name: render-config
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              sed "s|__REDIS_PASSWORD__|$(cat /secrets/password)|g" \
+                /config-template/haproxy.cfg > /config/haproxy.cfg
+          volumeMounts:
+            - name: haproxy-config-template
+              mountPath: /config-template
+            - name: haproxy-config-rendered
+              mountPath: /config
+            - name: haproxy-redis-secret
+              mountPath: /secrets
+      {{- end }}
+      containers:
+        - name: haproxy
+          image: "{{ .Values.haproxy.image.repository }}:{{ .Values.haproxy.image.tag }}"
+          imagePullPolicy: {{ .Values.haproxy.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.haproxy.service.port }}
+              name: redis
+            {{- if .Values.haproxy.replicaFrontend.enabled }}
+            - containerPort: {{ .Values.haproxy.replicaFrontend.port }}
+              name: redis-replicas
+            {{- end }}
+          volumeMounts:
+            {{- if .Values.redis.auth.enabled }}
+            - name: haproxy-config-rendered
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+            {{- else }}
+            - name: haproxy-config-template
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+            {{- end }}
+          resources:
+            {{- toYaml .Values.haproxy.resources | nindent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.haproxy.service.port }}
+            initialDelaySeconds: {{ .Values.haproxy.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.haproxy.livenessProbe.periodSeconds }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.haproxy.service.port }}
+            initialDelaySeconds: {{ .Values.haproxy.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.haproxy.readinessProbe.periodSeconds }}
+      volumes:
+        - name: haproxy-config-template
+          configMap:
+            name: {{ .Release.Name }}-haproxy-config
+        {{- if .Values.redis.auth.enabled }}
+        - name: haproxy-config-rendered
+          emptyDir: {}
+        - name: haproxy-redis-secret
+          secret:
+            secretName: {{ include "haproxy-redis.authSecretName" . }}
+            items:
+              - key: {{ .Values.redis.auth.existingSecretKey }}
+                path: password
+        {{- end }}
