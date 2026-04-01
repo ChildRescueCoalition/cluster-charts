@@ -34,6 +34,7 @@ data:
 
     backend haproxy-redis-master
       balance first
+      option tcp-check
       server redis-0 {{ include "haproxy-redis.masterDNS" . }}:{{ .Values.redis.service.port }} check inter {{ .Values.haproxy.healthCheck.interval }} rise {{ .Values.haproxy.healthCheck.rise }} fall {{ .Values.haproxy.healthCheck.fall }}
 
     {{- if .Values.haproxy.replicaFrontend.enabled }}
@@ -43,6 +44,7 @@ data:
 
     backend haproxy-redis-replicas
       balance roundrobin
+      option tcp-check
       {{- range $i, $e := until (int .Values.redis.replicaCount) }}
       {{- if gt $i 0 }}
       server replica-{{ $i }} {{ $.Release.Name }}-redis-{{ $i }}.{{ $.Release.Name }}-redis-headless.{{ include "haproxy-redis.namespace" $ }}.svc.cluster.local:{{ $.Values.redis.service.port }} check inter {{ $.Values.haproxy.healthCheck.interval }} rise {{ $.Values.haproxy.healthCheck.rise }} fall {{ $.Values.haproxy.healthCheck.fall }}
