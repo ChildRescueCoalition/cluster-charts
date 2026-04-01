@@ -3,6 +3,23 @@ entries:
   haproxy-redis:
   - apiVersion: v2
     appVersion: "7.4"
+    created: "2026-04-01T02:08:40.217904554Z"
+    description: Redis StatefulSet with HAProxy frontend for master-replica deployments
+    digest: 35ec131bc37492c56462f527b2c52cd8b8683bde4c291cd245c84ee32a8fe541
+    keywords:
+    - redis
+    - haproxy
+    - cache
+    maintainers:
+    - email: rmachorro@childrescuecoalition.org
+      name: Roberto Machorro
+    name: haproxy-redis
+    type: application
+    urls:
+    - https://github.com/ChildRescueCoalition/cluster-charts/releases/download/haproxy-redis-0.1.1/haproxy-redis-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: "7.4"
     created: "2026-03-31T20:19:50.943133997Z"
     description: Redis StatefulSet with HAProxy frontend for master-replica deployments
     digest: 23622e8a9f2bf17d779e9172790d0f667950dec59fbef73f845b42db34756aff
@@ -17,4 +34,4 @@ entries:
     urls:
     - https://github.com/ChildRescueCoalition/cluster-charts/releases/download/haproxy-redis-0.1.0/haproxy-redis-0.1.0.tgz
     version: 0.1.0
-generated: "2026-03-31T20:19:50.943140449Z"
+generated: "2026-04-01T02:08:40.217914683Z"
