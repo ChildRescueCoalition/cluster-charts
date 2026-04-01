@@ -2,11 +2,12 @@ apiVersion: v2
 name: haproxy-redis
 description: Redis StatefulSet with HAProxy frontend for master-replica deployments
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "7.4"
 keywords:
   - redis
   - haproxy
   - cache
 maintainers:
-  - name: ""
+  - name: Roberto Machorro
+    email: rmachorro@childrescuecoalition.org

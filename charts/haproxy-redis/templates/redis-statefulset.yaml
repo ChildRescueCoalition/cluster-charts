@@ -78,6 +78,14 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           command: ["redis-server", "/etc/redis/redis.conf"]
+          {{- if .Values.redis.auth.enabled }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "haproxy-redis.authSecretName" . }}
+                  key: {{ .Values.redis.auth.existingSecretKey }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.redis.service.port }}
               name: redis
@@ -85,13 +93,29 @@ spec:
             {{- toYaml .Values.redis.resources | nindent 12 }}
           livenessProbe:
             exec:
-              command: ["redis-cli", "ping"]
+              command:
+                {{- if .Values.redis.auth.enabled }}
+                - sh
+                - -c
+                - redis-cli -a "$(REDIS_PASSWORD)" --no-auth-warning ping
+                {{- else }}
+                - redis-cli
+                - ping
+                {{- end }}
             initialDelaySeconds: {{ .Values.redis.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.redis.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.redis.livenessProbe.timeoutSeconds }}
           readinessProbe:
             exec:
-              command: ["redis-cli", "ping"]
+              command:
+                {{- if .Values.redis.auth.enabled }}
+                - sh
+                - -c
+                - redis-cli -a "$(REDIS_PASSWORD)" --no-auth-warning ping
+                {{- else }}
+                - redis-cli
+                - ping
+                {{- end }}
             initialDelaySeconds: {{ .Values.redis.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.redis.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.redis.readinessProbe.timeoutSeconds }}

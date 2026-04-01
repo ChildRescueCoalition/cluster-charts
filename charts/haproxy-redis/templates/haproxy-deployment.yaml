@@ -39,7 +39,7 @@ spec:
       {{- if .Values.redis.auth.enabled }}
       initContainers:
         - name: render-config
-          image: busybox
+          image: busybox:1.37.0
           command:
             - sh
             - -c

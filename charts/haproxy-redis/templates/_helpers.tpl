@@ -41,6 +41,7 @@ Common labels.
 {{- define "haproxy-redis.labels" -}}
 helm.sh/chart: {{ include "haproxy-redis.chart" . }}
 {{ include "haproxy-redis.selectorLabels" . }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
