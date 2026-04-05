@@ -1,6 +1,41 @@
 apiVersion: v1
 entries:
+  filebrowser:
+  - apiVersion: v2
+    appVersion: v2
+    created: "2026-04-05T02:59:02.296634017Z"
+    description: FileBrowser web-based file manager
+    digest: 382a2030fe94753c1d9094217db04160ea1645c96a91b3d7a289b60377e3cd5f
+    keywords:
+    - k8s
+    - pvc
+    - files
+    maintainers:
+    - email: rmachorro@childrescuecoalition.org
+      name: Roberto Machorro
+    name: filebrowser
+    type: application
+    urls:
+    - https://github.com/ChildRescueCoalition/cluster-charts/releases/download/filebrowser-0.1.0/filebrowser-0.1.0.tgz
+    version: 0.1.0
   haproxy-redis:
+  - apiVersion: v2
+    appVersion: "7.4"
+    created: "2026-04-05T02:59:02.444873868Z"
+    description: Redis StatefulSet with HAProxy frontend for master-replica deployments
+    digest: 29122f16eca3557b1901798efe89396ab6183261633a1daef47222adcdc35d2b
+    keywords:
+    - redis
+    - haproxy
+    - cache
+    maintainers:
+    - email: rmachorro@childrescuecoalition.org
+      name: Roberto Machorro
+    name: haproxy-redis
+    type: application
+    urls:
+    - https://github.com/ChildRescueCoalition/cluster-charts/releases/download/haproxy-redis-0.1.3/haproxy-redis-0.1.3.tgz
+    version: 0.1.3
   - apiVersion: v2
     appVersion: "7.4"
     created: "2026-04-01T02:21:51.568878974Z"
@@ -51,4 +86,4 @@ entries:
     urls:
     - https://github.com/ChildRescueCoalition/cluster-charts/releases/download/haproxy-redis-0.1.0/haproxy-redis-0.1.0.tgz
     version: 0.1.0
-generated: "2026-04-01T02:21:51.568899052Z"
+generated: "2026-04-05T02:59:02.444888034Z"
