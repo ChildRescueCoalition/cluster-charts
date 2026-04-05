@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: filebrowser/filebrowser
+  tag: "v2"
+  pullPolicy: IfNotPresent
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+service:
+  port: 80
+
+persistence:
+  config:
+    size: 1Mi
+  database:
+    size: 10Mi
+  data:
+    existingClaim: sample-pvc

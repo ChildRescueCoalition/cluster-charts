@@ -1,0 +1,13 @@
+apiVersion: v2
+name: filebrowser
+description: FileBrowser web-based file manager
+type: application
+version: 0.1.0
+appVersion: "v2"
+keywords:
+  - k8s
+  - pvc
+  - files
+maintainers:
+  - name: Roberto Machorro
+    email: rmachorro@childrescuecoalition.org

@@ -1,0 +1,17 @@
+FileBrowser has been deployed.
+
+Service type is NodePort. To find the assigned port:
+
+  kubectl get svc {{ include "filebrowser.fullname" . }} -n {{ .Release.Namespace }}
+
+Access the UI at http://<node-ip>:<node-port>
+Default credentials: admin / admin (change immediately after first login).
+
+---
+IMPORTANT: This chart requires a pre-existing PVC for the data volume.
+The release was installed with:
+
+  persistence.data.existingClaim: {{ .Values.persistence.data.existingClaim }}
+
+That PVC must exist in namespace {{ .Release.Namespace }} before install, or the pod will fail to start.
+To change it, set --set persistence.data.existingClaim=<your-pvc-name> at install time.
