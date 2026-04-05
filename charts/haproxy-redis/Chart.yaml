@@ -2,7 +2,7 @@ apiVersion: v2
 name: haproxy-redis
 description: Redis StatefulSet with HAProxy frontend for master-replica deployments
 type: application
-version: 0.1.2
+version: 0.1.3
 appVersion: "7.4"
 keywords:
   - redis

@@ -14,7 +14,7 @@ helm repo update
 | Chart | Description | Version |
 |-------|-------------|---------|
 | [filebrowser](./charts/filebrowser/) | FileBrowser web-based file manager | 0.1.0 |
-| [haproxy-redis](./charts/haproxy-redis/README.md) | Redis StatefulSet with HAProxy frontend | 0.1.2 |
+| [haproxy-redis](./charts/haproxy-redis/README.md) | Redis StatefulSet with HAProxy frontend | 0.1.3 |
 
 ## Releasing a New Chart Version
 
